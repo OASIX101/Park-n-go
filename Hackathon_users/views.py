@@ -161,7 +161,9 @@ class RegisterView(APIView):
 @api_view(["POST"])
 def OtpVerify(request):
     if request.method == "POST":
-        pass
+        obj = CustomUser.objects.get(phone=request.data['phone'])
+        if obj:
+            otp = request.data['phone_otp']
         
 
 

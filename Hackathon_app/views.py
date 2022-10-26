@@ -277,11 +277,28 @@ def booking_active(request, booking_id):
         raise NotFound(detail={'message': 'booking with id not found'}) 
 
 @api_view(['GET'])
-def get_all_park_booking(request, park_id):
+def get_all_park_booking_active(request, park_id):
     """this endpoint retrieves all bookings that are active for a single park"""
     try:
         obj = ParkingSpace.objects.get(id=park_id)
         objs = obj.parking_space.filter(booking_status='active')
+        serializer = BookingSpaceSerializer(objs, many=True)
+        data = {
+            'message': 'success',
+            'count': objs.count(),
+            'data': serializer.data
+        }
+        return Response(data, status=status.HTTP_200_OK) 
+
+    except ParkingSpace.DoesNotExist:
+        raise NotFound(detail={'message': 'parking space with id not found'}) 
+
+@api_view(['GET'])
+def get_all_park_booking_upcoming(request, park_id):
+    """this endpoint retrieves all bookings that are upcoming for a single park"""
+    try:
+        obj = ParkingSpace.objects.get(id=park_id)
+        objs = obj.parking_space.filter(booking_status='upcoming')
         serializer = BookingSpaceSerializer(objs, many=True)
         data = {
             'message': 'success',
@@ -397,4 +414,4 @@ class ReviewEditView(APIView):
         obj.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-############     Oasix       ################
+############     Oasix.com       ################

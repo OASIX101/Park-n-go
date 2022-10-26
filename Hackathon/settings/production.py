@@ -3,7 +3,7 @@ from Hackathon.settings import base
 
 DEBUG = False
 
-ALLOWED_HOSTS = ['Park-n-Go.herokuapp.com']
+ALLOWED_HOSTS = ['park-nd-go.herokuapp.com']
 
 INSTALLED_APPS = base.INSTALLED_APPS + [
     'cloudinary',
@@ -12,10 +12,10 @@ INSTALLED_APPS = base.INSTALLED_APPS + [
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'd84bei8buppmau',
-        'USER': 'hxtshipeqmkuxq',
-        'PASSWORD': 'f1bb1a5cf0f07a1e6b825dad7fcd040f34ba1930359b74bbda86e223128cb0ad',
-        'HOST': 'ec2-52-200-5-135.compute-1.amazonaws.com',
+        'NAME': os.getenv('NAME'),
+        'USER': os.getenv('USER'),
+        'PASSWORD': os.getenv('PASSWORD'),
+        'HOST': os.getenv('HOST'),
         'PORT': '5432',
     }
 }
