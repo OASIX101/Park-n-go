@@ -8,13 +8,16 @@ from .models import BookingSpace, Reviews, ParkingSpace
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.response import Response
 from rest_framework import status
-
+from Hackathon_users.permissions import *
 
 # <--parking endpoints -->
 class ParkingSpaceView1(APIView):
 
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAdminOrReadOnly]
+
     def get(self, request, format=None):
-        """this endpoint is retrieves the parking spaces available in the database"""
+        """this endpoint is retrieves the parking spaces available in the database. allows only admin to create but allows other users to read only"""
 
         obj = ParkingSpace.objects.all()
         serializer = ParkingSpaceSerializer(obj, many=True)
@@ -29,7 +32,7 @@ class ParkingSpaceView1(APIView):
     @swagger_auto_schema(method='post', request_body=ParkingSpaceSerializer())
     @action(methods=['POST'], detail=True)
     def post(self, request, format=None):
-        """this endpoint creates a new parking space to the database"""
+        """this endpoint creates a new parking space to the database. it allows all users and allows anonymous users to read only"""
 
         serializer = ParkingSpaceSerializer(data=request.data)
         if serializer.is_valid():
@@ -49,6 +52,9 @@ class ParkingSpaceView1(APIView):
             return Response(data, status=status.HTTP_400_BAD_REQUEST)
 
 class ParkingSpaceView2(APIView):
+
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAdminOrReadOnly]
 
     def get_parking_space(self, park_id):
         """trys to get the park with the given id. Returns an error message if park not found"""
@@ -104,6 +110,9 @@ class ParkingSpaceView2(APIView):
 # <-- booking endpoints -->
 class BookingSpaceView(APIView):
 
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsUserOnly]
+
     def get_booking(self, user, booking_id):
         """trys to get the booking of the currently logged in user with the given id. Returns an error message if booking not found"""
         try:
@@ -142,6 +151,8 @@ class BookingSpaceView(APIView):
 
 @swagger_auto_schema(method='post', request_body=BookingSpaceSerializer2())
 @api_view(['POST'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsUserOnly])
 def booking(request):
     """this endpoint creates a new booking for the logged in user if the amount_paid was provided and the vehicle provided is registered under the user"""
     if request.method == 'POST':
@@ -185,6 +196,8 @@ def booking(request):
         except Vehicle.DoesNotExist:
             raise NotFound(detail={'message': 'Vehicle with id does not exist'})
  
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsUserOnly])
 @api_view(['GET'])
 def status_active(request):
     """this endpoint retrieves all booking for the logged in user from the database that are currently active"""
@@ -198,6 +211,8 @@ def status_active(request):
         }
         return Response(data, status=status.HTTP_200_OK)
 
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsUserOnly])
 @api_view(['GET'])
 def status_upcoming(request):
     """this endpoint retrieves all booking for the logged in user from the database that are upcoming"""
@@ -212,6 +227,8 @@ def status_upcoming(request):
         }
         return Response(data, status=status.HTTP_200_OK)
 
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsUserOnly])
 @api_view(['GET'])
 def status_past(request):
     """this endpoint retrieves all booking for the logged in user from the database that have been checked out"""
@@ -226,6 +243,8 @@ def status_past(request):
         }
         return Response(data, status=status.HTTP_200_OK)
 
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsUserOnly])
 @api_view(['GET'])
 def user_booking(request):
     """this endpoint retrieves all booking for the logged in user from the database regardless of their status."""
@@ -240,6 +259,8 @@ def user_booking(request):
         }
         return Response(data, status=status.HTTP_200_OK)
 
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsUserOnly])
 @api_view(['GET'])
 def booking_checkout(request, booking_id):
     """trys to get the booking of the currently logged in user with the given id and checks the booking out if the booking is active. Returns an error message if booking not found"""
@@ -258,16 +279,14 @@ def booking_checkout(request, booking_id):
     except BookingSpace.DoesNotExist:
         raise NotFound(detail={'message': 'booking with id not found'}) 
 
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsUserOnly])
 @api_view(['GET'])
 def booking_active(request, booking_id):
     """trys to get the booking of the currently logged in user with the given id and make the booking active if the booking status is upcoming. Returns an error message if booking not found"""
     try:
         obj = BookingSpace.objects.get(id=booking_id, user=request.user.id)
         if obj.booking_status == 'upcoming':
-            park = obj.parking_space.id
-            park_obj = ParkingSpace.objects.get(id=park)
-            park_obj.available_spaces+=1
-            park_obj.save()
             obj.booking_status = 'active'
             obj.save()
         else:
@@ -276,6 +295,8 @@ def booking_active(request, booking_id):
     except BookingSpace.DoesNotExist:
         raise NotFound(detail={'message': 'booking with id not found'}) 
 
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAdminOnly])
 @api_view(['GET'])
 def get_all_park_booking_active(request, park_id):
     """this endpoint retrieves all bookings that are active for a single park"""
@@ -293,6 +314,8 @@ def get_all_park_booking_active(request, park_id):
     except ParkingSpace.DoesNotExist:
         raise NotFound(detail={'message': 'parking space with id not found'}) 
 
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAdminOnly])
 @api_view(['GET'])
 def get_all_park_booking_upcoming(request, park_id):
     """this endpoint retrieves all bookings that are upcoming for a single park"""
@@ -312,6 +335,9 @@ def get_all_park_booking_upcoming(request, park_id):
 
 # <-- Reviews endpoints -->
 class ReviewView(APIView):
+    
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsUserOnly]
 
     def get_parking_space(self, park_id):
         """trys to get the park with the given id. Returns an error message if park not found"""
@@ -334,6 +360,8 @@ class ReviewView(APIView):
 
 @swagger_auto_schema(method='post', request_body=ReviewsSerializer2())
 @api_view(['POST'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsUserOnly])
 def review(request):
     """this endpoint create new reviews to the database"""
     if request.method == 'POST':
@@ -357,6 +385,9 @@ def review(request):
             return Response(data, status=status.HTTP_400_BAD_REQUEST)
 
 class ReviewEditView(APIView):
+
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsUserOnly]
 
     def get_review(self, park_id, review_id, user):
         """this endpoint retrieves the review for the given park relating to the logged in user"""

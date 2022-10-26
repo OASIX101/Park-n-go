@@ -15,5 +15,6 @@ urlpatterns = [
     path('reviews/', views.ReviewView().as_view(), name='reviews_all'),
     path('reviews/create/', views.review, name='review_create'),
     path('reviews/update/<int:park_id>/<int:review_id>/', views.ReviewEditView().as_view(), name='review_edit'),
-    path('spaces/booking/id=%<int:park_id>/',  views.get_all_park_booking, name='space_all_booking')
+    path('spaces/booking-active/id=%<int:park_id>/',  views.get_all_park_booking_active, name='space_all_booking_active'),
+    path('spaces/booking-upcoming/id=%<int:park_id>/',  views.get_all_park_booking_upcoming, name='space_all_booking_upcoming')
 ]

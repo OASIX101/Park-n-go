@@ -10,12 +10,11 @@ from Hackathon_users.models import CustomUser
 from .serializers import LogOutSerializer, LogInSerializer, OtpVerifySerializer, RegisterSerializer, RegisterSerializer2
 from rest_framework_simplejwt.exceptions import TokenError
 from django.contrib.auth.signals import user_logged_in, user_logged_out
-from .permissions import IsUserAuthenticated
+from .permissions import *
 from rest_framework.views import APIView
 import math
 import random
 from .mixins import *
-
 
 @swagger_auto_schema(method="post",request_body=LogInSerializer())
 @api_view(["POST"])
@@ -71,7 +70,7 @@ def login_view(request):
 @swagger_auto_schema(method="post",request_body=LogOutSerializer())
 @api_view(["POST"])
 @authentication_classes([JWTAuthentication])
-@permission_classes([IsUserAuthenticated])
+@permission_classes([IsUserOnly])
 def logout_view(request):
     """Log out a user by blacklisting their refresh token then making use of django's internal logout function to flush out their session and completely log them out.
     Returns:
