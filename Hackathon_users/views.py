@@ -114,10 +114,10 @@ def email_link(request, user_data):
     current_site = get_current_site(request).domain
     relativeLink = reverse('email-verify')
     absurl = 'http://'+current_site+relativeLink+"?token="+str(token)
-    email_body = 'Hi '+user.first_name + user.last_name + \
+    email_body = 'Hi '+user.first_name + '' + user.last_name + \
         ' Use the link below to verify your email \n' + absurl
     data = {'email_body': email_body, 'to_email': user.email,
-            'email_subject': f'Verify your email'}
+            'email_subject': f'Verify your Park-n-Go email account'}
 
     Util.send_email(data)
     return Response(user_data, status=status.HTTP_201_CREATED)
