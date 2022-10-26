@@ -37,3 +37,10 @@ class RegisterSerializer2(serializers.ModelSerializer):
 class OtpVerifySerializer(serializers.Serializer):
     otp = serializers.CharField(max_length=4)
     phone = serializers.CharField(max_length=11)
+
+class EmailVerificationSerializer(serializers.ModelSerializer):
+    token = serializers.CharField(max_length=555)
+
+    class Meta:
+        model = CustomUser
+        fields = ['token']
