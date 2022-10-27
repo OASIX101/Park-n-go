@@ -7,7 +7,7 @@ class ParkingSpace(models.Model):
     park_image2 = models.ImageField(upload_to='park/%Y/%B/%d/')
     park_image3 = models.ImageField(upload_to='park/%Y/%B/%d/')
     park_name = models.CharField(max_length=225)
-    location_cordinates = models.CharField(max_length=150, unique=True)
+    location_coordinates = models.CharField(max_length=150, unique=True)
     capacity = models.IntegerField()
     available_spaces = models.IntegerField()
     cost_per_hour = models.FloatField() 
@@ -29,6 +29,9 @@ class Reviews(models.Model):
 
     def __str__(self):
         return self.star_ratings
+
+    class Meta:
+        ordering = ('-date_added', '-time_added')
 
 class BookingSpace(models.Model):
     BOOKING_STATUS = (

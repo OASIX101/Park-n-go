@@ -7,14 +7,13 @@ from rest_framework import status
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.exceptions import PermissionDenied
 from Hackathon_users.models import CustomUser, Vehicle
-from .serializers import EmailVerificationSerializer, LogOutSerializer, LogInSerializer, OtpRequestSerializer, OtpVerifySerializer, RegisterSerializer, RegisterSerializer2, VehicleSerializer, VehicleSerializer2
+from .serializers import EmailVerificationSerializer, LogOutSerializer, LogInSerializer, RegisterSerializer, ResetPasswordEmailRequestSerializer, SetNewPasswordSerializer, UserEditSerializer, VehicleSerializer, VehicleSerializer2
 from rest_framework_simplejwt.exceptions import TokenError
 from django.contrib.auth.signals import user_logged_in, user_logged_out
 from .permissions import *
 from rest_framework.views import APIView
 import math
 import random
-from .mixins import *
 from django.contrib.sites.shortcuts import get_current_site
 from django.urls import reverse
 from .utils import Util
@@ -23,6 +22,18 @@ from drf_yasg import openapi
 import jwt
 from .renderers import *
 from rest_framework.exceptions import NotFound
+from django.conf import settings
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from django.utils.encoding import smart_str, force_str, smart_bytes, DjangoUnicodeDecodeError
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+import os
+from django.http import HttpResponsePermanentRedirect
+
+
+
+class CustomRedirect(HttpResponsePermanentRedirect):
+
+    allowed_schemes = [os.environ.get('APP_SCHEME'), 'http', 'https']
 
 @swagger_auto_schema(method="post",request_body=LogInSerializer())
 @api_view(["POST"])
@@ -42,7 +53,6 @@ def login_view(request):
                     
                     user_details = {}
                     user_details['id']   = user.id
-                    user_details['username'] = user.first_name + ' ' + user.last_name
                     user_details['email'] = user.email
                     user_details['refresh_token'] = str(refresh)
                     user_details['access_token'] = str(refresh.access_token)
@@ -101,20 +111,13 @@ def logout_view(request):
     except TokenError:
         return Response({"message": "failed", "error": "Invalid refresh token"}, status=status.HTTP_400_BAD_REQUEST)
 
-def generateOTP():
-    digits = "0123456789"
-    OTP = ""
-    for i in range(4) :
-        OTP += digits[math.floor(random.random() * 10)]
-    return OTP
-
 def email_link(request, user_data):
     user = CustomUser.objects.get(email=user_data['email'])
     token = RefreshToken.for_user(user).access_token
     current_site = get_current_site(request).domain
     relativeLink = reverse('email-verify')
     absurl = 'http://'+current_site+relativeLink+"?token="+str(token)
-    email_body = 'Hi '+user.first_name + '' + user.last_name + \
+    email_body = 'Hi '+user.full_name + \
         ' Use the link below to verify your email \n' + absurl
     data = {'email_body': email_body, 'to_email': user.email,
             'email_subject': f'Verify your Park-n-Go email account'}
@@ -122,26 +125,16 @@ def email_link(request, user_data):
     Util.send_email(data)
     return Response(user_data, status=status.HTTP_201_CREATED)
 
-def otp(phone, otp):
-    if phone[0] == '0':
-        phone_num = phone[1:]
-        sms = MessageHandler(f'+234{phone_num}', otp)
-        sms.send_otp_to_phone() 
-    
-    else:
-        sms = MessageHandler(f'+234{phone}', otp)
-        sms.send_otp_to_phone() 
-
 class RegisterView(APIView):
 
     serializer_class = RegisterSerializer
     renderer_classes = (UserRenderer,)
 
-    @swagger_auto_schema(method='post', request_body=RegisterSerializer2())
+    @swagger_auto_schema(method='post', request_body=RegisterSerializer())
     @action(methods=['POST'], detail=True)
     def post(self, request):
         user_data = request.data
-        if len(user_data['password']) == 8: 
+        if len(user_data['password']) >= 8: 
             if eval(user_data['age']) >= 18:
                 serializer = self.serializer_class(data=user_data)
                 if serializer.is_valid():
@@ -159,7 +152,7 @@ class RegisterView(APIView):
                 else:
                     obj = CustomUser.objects.get(email=user_data['email'])
                 
-                    if obj.is_otp_verified == False or obj.is_email_verified == False:
+                    if obj.is_email_verified == False or obj.is_active == False:
                         obj.delete()
 
                         serializer1 = self.serializer_class(data=user_data)
@@ -168,7 +161,7 @@ class RegisterView(APIView):
                             email_link(request=request, user_data=user_data)
                             data={
                                 'message': 'success',
-                                'next_page': 'verify email'
+                                'next_step': 'verify email'
                             }
 
                             return Response(data, status=status.HTTP_201_CREATED)
@@ -191,7 +184,7 @@ class RegisterView(APIView):
                 }
                 return Response(data, status=status.HTTP_400_BAD_REQUEST)
         else:
-            raise PermissionDenied(detail={'message': 'password is required to be greater than 8'})
+            raise PermissionDenied(detail={'message': 'password is required to be greater than or equal to 8 characteres'})
 
 class VerifyEmail(views.APIView):
     serializer_class = EmailVerificationSerializer
@@ -207,43 +200,13 @@ class VerifyEmail(views.APIView):
             user = CustomUser.objects.get(id=payload['user_id'])
             if not user.is_email_verified:
                 user.is_email_verified = True
+                user.is_active = True
                 user.save()
             return Response({'email': 'Successfully activated', 'message': 'move to phone number verfication'}, status=status.HTTP_200_OK)
         except jwt.ExpiredSignatureError as identifier:
             return Response({'error': 'Activation Expired'}, status=status.HTTP_400_BAD_REQUEST)
         except jwt.exceptions.DecodeError as identifier:
             return Response({'error': 'Invalid token'}, status=status.HTTP_400_BAD_REQUEST)
-
-@swagger_auto_schema(method="post",request_body=OtpVerifySerializer())
-@api_view(["POST"])
-def verify_otp(request):
-    if request.method == "POST":
-        phone = request.data['phone']
-        try:    
-            obj = CustomUser.objects.get(phone=phone)
-            if obj:
-                if obj.is_email_verified == True:
-                    otp = request.data['otp']
-                    if obj.phone_otp == otp:
-                        obj.is_active = True
-                        obj.is_otp_verified = True
-                        obj.phone_otp = ''
-                        obj.save()
-
-                        data = {
-                            'message': 'phone number verified. Account is now active.'
-                        }
-                        return Response(data, status=status.HTTP_200_OK)
-
-                    else:
-                        data = {
-                            'otp is not valid'
-                        }
-                        return Response(data, status=status.HTTP_400_BAD_REQUEST)
-                else:
-                    return Response(data={'message': 'email has not been verified'}, status=status.HTTP_400_BAD_REQUEST)
-        except CustomUser.DoesNotExist:
-            raise NotFound(detail={'message': 'Permission denied. Phone number not found in the database'})
 
 def email_verif(email):
     try:
@@ -253,29 +216,6 @@ def email_verif(email):
     
     except:
         raise PermissionDenied(detail={'message': 'email has not been verified or does not exist'})
-
-@swagger_auto_schema(method="post",request_body=OtpRequestSerializer())
-@api_view(["POST"])
-def request_otp(request):
-    data = request.data
-    phone = data['phone']   
-    email=data['email']
- 
-    email2 = email_verif(email)
-    try:
-        phone_check = CustomUser.objects.filter(phone=phone)
-        if phone_check != []:
-            email2.phone = phone
-            email2.phone_otp = generateOTP()
-            email2.save()
-            otp(email2.phone, email2.phone_otp)
-            return Response(data={'message': 'phone otp sent'})            
-        else:
-            raise PermissionDenied(detail={'message': 'this number is already ien use by another account'})
-            
-    except CustomUser.DoesNotExist:
-            raise PermissionDenied(detail={'message': 'this number ris already in use by another account'})
-
 
 @swagger_auto_schema(method="post",request_body=VehicleSerializer2())
 @api_view(["POST"])
@@ -367,3 +307,62 @@ def get_all_vehicle(request):
         }
 
     return Response(data, status=status.HTTP_200_OK)
+
+class UserEdit(APIView):
+
+    def get_user(self, user_id):
+        try:
+            return CustomUser.objects.get(id=user_id)
+        except CustomUser.DoesNotExist:
+            raise NotFound(detail={'message': 'Permission denied. User does not exist in the database'})
+
+    def get(self, request,  format=None):
+        """this endpoint allows logged in user to retrieve their acct details"""
+        obj = self.get_user(user_id=request.user.id)
+        serializer = UserEditSerializer(obj)
+
+        data = {
+            'message': 'success',
+            'data': serializer.data
+        }
+
+        return Response(data=data, status=status.HTTP_200_OK)
+
+    @swagger_auto_schema(method='put', request_body=UserEditSerializer())
+    @action(methods=['PUT'], detail=True)
+    def put(self, request, format=None):
+        """this endpoint allows logged in user to update their acct details"""
+
+        obj = self.get_user(user_id=request.user.id)
+        serializer = UserEditSerializer(obj, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            data = {
+                'message': 'success',
+            }
+            return Response(data, status=status.HTTP_200_OK)
+
+        else:
+            data = {
+                'message': 'failed',
+                'error': serializer.errors
+            }
+            return Response(data, status=status.HTTP_400_BAD_REQUEST)
+
+    @swagger_auto_schema(method='delete')
+    @action(methods=['DELETE'], detail=True)
+    def delete(self, request, format=None):
+        """this endpoint allows logged in user to delete their acct details"""
+
+        obj = self.get_user(user_id=request.user.id)
+        obj.delete()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+    serializer_class = SetNewPasswordSerializer
+
+    def patch(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response({'success': True, 'message': 'Password reset success'}, status=status.HTTP_200_OK)

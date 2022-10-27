@@ -6,21 +6,20 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 class CustomUserManager(BaseUserManager):
 
-    def create_user(self, email, password, first_name, last_name, **other_fields):
+    def create_user(self, email, password, full_name, **other_fields):
         if not email:
             raise ValueError(_('You must provide an email address'))
         email = self.normalize_email(email)
         user = self.model(
             email=email,
-            first_name=first_name,
-            last_name=last_name,
+            full_name=full_name,
             **other_fields
         )
         user.set_password(password)
         user.save()
         return user
 
-    def create_superuser(self, email, password, first_name, last_name, **other_fields):
+    def create_superuser(self, email, password, full_name, **other_fields):
 
         other_fields.setdefault('is_staff', True)
         other_fields.setdefault('is_superuser', True)
@@ -37,29 +36,27 @@ class CustomUserManager(BaseUserManager):
                 'Superuser must be assigned to is_superuser=True.'
             )
 
-        return self.create_user(email, password, first_name, last_name, **other_fields)
+        return self.create_user(email, password, full_name, **other_fields)
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
 
+    user_image = models.ImageField(upload_to='user_image/%Y/%B/%d/')
     email = models.EmailField(unique=True)
-    phone = models.CharField(max_length=11, unique=True, null=True, blank=True)
-    first_name = models.CharField(max_length=150)
-    last_name = models.CharField(max_length=150)
+    gmail_uid = models.CharField(max_length=250, unique=True)
+    full_name = models.CharField(max_length=200)
     age = models.CharField(max_length=10)
-    phone_otp = models.CharField(max_length=4, null=True, blank=True)
-    is_otp_verified = models.BooleanField(default=False)
     is_email_verified = models.BooleanField(default=False)
     date_added = models.DateTimeField(auto_now_add=True)
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=False)
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['first_name', 'last_name', 'phone', 'age', 'phone_otp']
+    REQUIRED_FIELDS = ['full_name', 'gmail_uid', 'age', 'user_image']
 
     objects = CustomUserManager()
 
     def __str__(self):
-        return self.first_name + ' ' + self.last_name
+        return self.full_name
 
     def tokens(self):
         refresh = RefreshToken.for_user(self)
@@ -87,5 +84,3 @@ class Vehicle(models.Model):
 
     def __str__(self):
         return self.car_model
-
-
