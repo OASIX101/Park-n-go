@@ -40,18 +40,13 @@ class CustomUserManager(BaseUserManager):
         return self.create_user(email, password, first_name, last_name, **other_fields)
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
-    GENDER_CHOICES = (
-        ('male', 'Male'),
-        ('female', 'Female'),
-    )
 
-    email = models.EmailField(_('email address'), unique=True)
-    phone = models.CharField(max_length=11, unique=True)
+    email = models.EmailField(unique=True)
+    phone = models.CharField(max_length=11, unique=True, null=True, blank=True)
     first_name = models.CharField(max_length=150)
     last_name = models.CharField(max_length=150)
-    gender = models.CharField(max_length=10, choices=GENDER_CHOICES)
-    age = models.IntegerField()
-    phone_otp = models.CharField(max_length=4)
+    age = models.CharField(max_length=10)
+    phone_otp = models.CharField(max_length=4, null=True, blank=True)
     is_otp_verified = models.BooleanField(default=False)
     is_email_verified = models.BooleanField(default=False)
     date_added = models.DateTimeField(auto_now_add=True)

@@ -195,7 +195,7 @@ def booking(request):
                 raise PermissionDenied(detail={'message': 'Vehicle is not registered under this user'})
         except Vehicle.DoesNotExist:
             raise NotFound(detail={'message': 'Vehicle with id does not exist'})
- 
+
 @authentication_classes([JWTAuthentication])
 @permission_classes([IsUserOnly])
 @api_view(['GET'])

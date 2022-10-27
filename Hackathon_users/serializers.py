@@ -16,7 +16,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CustomUser
-        fields = ['first_name','last_name', 'email', 'phone', 'password', 'age', 'gender', 'phone_otp']
+        fields = ['first_name','last_name', 'email', 'phone', 'password', 'age', 'phone_otp']
 
     def create(self, validated_data):
         return CustomUser.objects.create_user(**validated_data)
@@ -29,7 +29,7 @@ class RegisterSerializer2(serializers.ModelSerializer):
 
     class Meta:
         model = CustomUser
-        fields = ['first_name','last_name', 'email', 'phone', 'password', 'age', 'gender']
+        fields = ['first_name','last_name', 'email', 'password', 'age']
 
     def create(self, validated_data):
         return CustomUser.objects.create_user(**validated_data)
@@ -44,3 +44,7 @@ class EmailVerificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
         fields = ['token']
+
+class OtpRequestSerializer(serializers.Serializer):
+    phone = serializers.CharField(max_length=11)
+    email = serializers.EmailField()

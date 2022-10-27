@@ -169,6 +169,3 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',     
     ]
 }
-
-ACCOUNT_SID = os.getenv('ACCOUNT_SID')
-AUTH_TOKEN = os.getenv('AUTH_TOKEN')
