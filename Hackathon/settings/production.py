@@ -1,7 +1,7 @@
 from .base import *
 from Hackathon.settings import base
 
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['park-nd-go.herokuapp.com']
 
