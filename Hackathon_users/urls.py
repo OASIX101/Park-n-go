@@ -11,4 +11,5 @@ urlpatterns = [
     path('vehicle/<int:vehicle_id>/', views.VehicleEdit().as_view(), name="vehicle"),
     path('vehicles/', views.get_all_vehicle, name="all_vehicles"),
     path('user-details/', views.UserEdit().as_view(), name="user_details"),
+    path('user-delete/<int:user_id>/', views.delete_user, name="user_delete"),
 ]

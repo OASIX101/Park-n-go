@@ -7,7 +7,7 @@ from rest_framework import status
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.exceptions import PermissionDenied
 from Hackathon_users.models import CustomUser, Vehicle
-from .serializers import EmailVerificationSerializer, LogOutSerializer, LogInSerializer, RegisterSerializer, UserEditSerializer, VehicleSerializer, VehicleSerializer2
+from .serializers import EmailVerificationSerializer, LogOutSerializer, LogInSerializer, RegisterSerializer, UserEditSerializer, UserEditSerializer2, VehicleSerializer, VehicleSerializer2
 from rest_framework_simplejwt.exceptions import TokenError
 from django.contrib.auth.signals import user_logged_in, user_logged_out
 from .permissions import *
@@ -316,7 +316,7 @@ class UserEdit(APIView):
     def get(self, request,  format=None):
         """this endpoint allows logged in user to retrieve their acct details"""
         obj = self.get_user(user_id=request.user.id)
-        serializer = UserEditSerializer(obj)
+        serializer = UserEditSerializer2(obj)
 
         data = {
             'message': 'success',
@@ -346,12 +346,21 @@ class UserEdit(APIView):
             }
             return Response(data, status=status.HTTP_400_BAD_REQUEST)
 
-    @swagger_auto_schema(method='delete')
-    @action(methods=['DELETE'], detail=True)
-    def delete(self, request, format=None):
-        """this endpoint allows logged in user to delete their acct details"""
 
-        obj = self.get_user(user_id=request.user.id)
+
+@swagger_auto_schema(method='delete')
+@api_view(['DELETE'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAdminOnly])
+def delete_user(request, user_id):
+    """this endpoint allows only admin users to delete a user"""
+    try:
+        obj = CustomUser.objects.get(id=user_id)  
         obj.delete()
-
         return Response(status=status.HTTP_204_NO_CONTENT)
+    except CustomUser.DoesNotExist:
+        raise NotFound(detail={'message': 'Permission denied. User does not exist in the database'})
+   
+    
+
+ 

@@ -46,3 +46,9 @@ class UserEditSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
         fields = ['full_name', 'age']
+
+class UserEditSerializer2(serializers.ModelSerializer):
+ 
+    class Meta:
+        model = CustomUser
+        fields = '__all__'
