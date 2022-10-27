@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import CustomUser
+from .models import CustomUser, Vehicle
 
 class LogInSerializer(serializers.Serializer):
     email = serializers.EmailField()
@@ -48,3 +48,15 @@ class EmailVerificationSerializer(serializers.ModelSerializer):
 class OtpRequestSerializer(serializers.Serializer):
     phone = serializers.CharField(max_length=11)
     email = serializers.EmailField()
+
+class VehicleSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Vehicle
+        fields = '__all__'
+
+class VehicleSerializer2(serializers.ModelSerializer):
+
+    class Meta:
+        model = Vehicle
+        fields = ['vehicle_type', 'license_plate_number', 'car_model']

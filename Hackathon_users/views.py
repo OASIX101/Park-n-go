@@ -6,8 +6,8 @@ from django.contrib.auth import logout, authenticate
 from rest_framework import status
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.exceptions import PermissionDenied
-from Hackathon_users.models import CustomUser
-from .serializers import EmailVerificationSerializer, LogOutSerializer, LogInSerializer, OtpRequestSerializer, OtpVerifySerializer, RegisterSerializer, RegisterSerializer2
+from Hackathon_users.models import CustomUser, Vehicle
+from .serializers import EmailVerificationSerializer, LogOutSerializer, LogInSerializer, OtpRequestSerializer, OtpVerifySerializer, RegisterSerializer, RegisterSerializer2, VehicleSerializer, VehicleSerializer2
 from rest_framework_simplejwt.exceptions import TokenError
 from django.contrib.auth.signals import user_logged_in, user_logged_out
 from .permissions import *
@@ -216,9 +216,9 @@ class VerifyEmail(views.APIView):
 @api_view(["POST"])
 def verify_otp(request):
     if request.method == "POST":
-        phone=request.data['phone']
+        phone = request.data['phone']
         try:    
-            obj = CustomUser.objects.get(phone=request.data['phone'])
+            obj = CustomUser.objects.get(phone=phone)
             if obj:
                 if obj.is_email_verified == True:
                     otp = request.data['otp']
@@ -242,7 +242,6 @@ def verify_otp(request):
                     return Response(data={'message': 'email has not been verified'}, status=status.HTTP_400_BAD_REQUEST)
         except CustomUser.DoesNotExist:
             raise NotFound(detail={'message': 'Permission denied. Phone number not found in the database'})
-
 
 def email_verif(email):
     try:
@@ -276,3 +275,93 @@ def request_otp(request):
             raise PermissionDenied(detail={'message': 'this number ris already in use by another account'})
 
 
+@swagger_auto_schema(method="post",request_body=VehicleSerializer2())
+@api_view(["POST"])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsUserOnly])
+def add_vehicle(request):
+    """this endpoint adds a vehicle to a logged in user"""
+    if request.method == 'POST':
+
+        data = request.data
+        data['user'] = request.user.id
+
+        serializer = VehicleSerializer(data=data)
+        if serializer.is_valid():
+
+            serializer.save()
+            return Response(data={'message': 'success'}, status=status.HTTP_200_OK)
+
+        else:
+            data ={
+                'message': 'failed',
+                'error': serializer.errors
+            }
+            return Response(data=data, status=status.HTTP_400_BAD_REQUEST)
+
+
+class VehicleEdit(APIView):
+
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsUserOnly]
+
+    def get_vehicle(self, vehicle_id, user):
+        try:
+            return Vehicle.objects.get(id=vehicle_id, user=user)
+        except Vehicle.DoesNotExist:
+            raise NotFound(detail={'message': 'vehicle with id does not exist'})
+
+    def get(self, request, vehicle_id, format=None):
+        """this retrieves the vehicle with the given id if the vehicle is related to the logged in user"""
+
+        obj = self.get_vehicle(vehicle_id, user=request.user.id)
+        serializer = VehicleSerializer(obj)
+        data = {
+            'message': 'success',
+            'data': serializer.data,
+         }
+
+        return Response(data, status=status.HTTP_200_OK)
+
+    @swagger_auto_schema(method='put', request_body=VehicleSerializer2())
+    @action(methods=['PUT'], detail=True)
+    def put(self, request, vehicle_id, format=None):
+        """this updates the vehicle with the given id if the vehicle is related to the logged in user"""
+
+        obj = self.get_vehicle(vehicle_id, user=request.user.id)
+        serializer = VehicleSerializer2(obj, data=request.data, partial=True)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(data={'message': 'success'}, status=status.HTTP_200_OK)
+
+        else:
+            data = {
+                'message': 'failed',
+                'errror': serializer.errors
+            }
+            return Response(data, status=status.HTTP_400_BAD_REQUEST)
+
+    @swagger_auto_schema(method='delete')
+    @action(methods=['DELETE'], detail=True)
+    def delete(self, request, vehicle_id, format=None):
+        """this deletes the vehicle with the given id if the vehicle is related to the logged in user"""
+        obj = self.get_vehicle(vehicle_id, user=request.user.id)
+
+        obj.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+@api_view(["GET"])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsUserOnly])
+def get_all_vehicle(request):
+    """this retrieves all the vehicle related to the logged in user"""
+
+    obj = Vehicle.objects.filter(user=request.user.id)
+    serializer = VehicleSerializer(obj, many=True)
+    data = {
+        'message': 'success',
+        'data': serializer.data,
+        }
+
+    return Response(data, status=status.HTTP_200_OK)

@@ -12,9 +12,10 @@ urlpatterns = [
     path('booking/activate/id=%<int:booking_id>/', views.booking_active, name='make_status_active'),
     path('booking/user-all/', views.user_booking, name='user_booking_all'),
     path('booking/checkout/id=%<int:booking_id>/', views.booking_checkout, name='booking_checkout'),
-    path('reviews/', views.ReviewView().as_view(), name='reviews_all'),
+    path('reviews/<int:park_id>/', views.ReviewView().as_view(), name='reviews_all'),
     path('reviews/create/', views.review, name='review_create'),
     path('reviews/update/<int:park_id>/<int:review_id>/', views.ReviewEditView().as_view(), name='review_edit'),
     path('spaces/booking-active/id=%<int:park_id>/',  views.get_all_park_booking_active, name='space_all_booking_active'),
+    path('spaces/booking-past/id=%<int:park_id>/',  views.get_all_park_booking_past, name='space_all_booking_past'),
     path('spaces/booking-upcoming/id=%<int:park_id>/',  views.get_all_park_booking_upcoming, name='space_all_booking_upcoming')
 ]

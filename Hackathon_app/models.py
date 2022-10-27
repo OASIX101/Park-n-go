@@ -16,14 +16,6 @@ class ParkingSpace(models.Model):
     park_info = models.TextField()
     date_added = models.DateTimeField(auto_now_add=True)
 
-    @property
-    def review_info(self):
-        return model_to_dict(self.reviews, fields='__all__')
-
-    @property
-    def booking(self):
-        return self.reviews.filter(booking_status='active').values()
-
     def __str__(self):
         return self.park_name
 
@@ -35,17 +27,8 @@ class Reviews(models.Model):
     date_added = models.DateField(auto_now_add=True)
     time_added = models.TimeField(auto_now_add=True)
 
-    @property
-    def review_info(self):
-        return model_to_dict(self.park_space, fields='__all__')
-
-    @property
-    def user_info(self):
-        return model_to_dict(self.user, fields='__all__') 
-
-    @property
-    def reviews(self):
-        return self.reviews.all().values()
+    def __str__(self):
+        return self.star_ratings
 
 class BookingSpace(models.Model):
     BOOKING_STATUS = (
@@ -66,15 +49,6 @@ class BookingSpace(models.Model):
     booking_status = models.CharField(max_length=25, choices=BOOKING_STATUS, default='upcoming')
     date_booked = models.DateTimeField(auto_now_add=True)
 
-    @property
-    def parking_space_info(self):
-        return model_to_dict(self.parking_space, fields='__all__')
-
-    @property
-    def user_info(self):
-        return model_to_dict(self.user, fields='__all__')
-
-    @property
-    def vehicle_info(self):
-        return model_to_dict(self.vehicle, fields='__all__')
+    def __str__(self):
+        return self.arrival_date + '_' + self.arrival_time
 

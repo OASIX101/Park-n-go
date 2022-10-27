@@ -64,7 +64,7 @@ class ParkingSpaceView2(APIView):
             raise NotFound(detail={'message': 'parking space with id not found'}) 
 
     def get(self, request, park_id, format=None):
-        """this endpoint retrieves all bookings that are active for a park"""
+        """this endpoint retrieves the parking space with this id"""
 
         obj = self.get_parking_space(park_id)
         serializer = ParkingSpaceSerializer(obj)
@@ -273,6 +273,7 @@ def booking_checkout(request, booking_id):
             park_obj.save()
             obj.booking_status = 'past'
             obj.save()
+            return Response(data={'message': 'success'})
         else:
             raise PermissionDenied(detail={'message': 'Booking cannot be checked because booking is upcoming or has already been checked out.'})
      
@@ -289,6 +290,7 @@ def booking_active(request, booking_id):
         if obj.booking_status == 'upcoming':
             obj.booking_status = 'active'
             obj.save()
+            return Response(data={'message': 'success'})
         else:
             raise PermissionDenied(detail={'message': 'Booking cannot be made active because booking is active or has already been checked out.'})
      
@@ -332,6 +334,26 @@ def get_all_park_booking_upcoming(request, park_id):
 
     except ParkingSpace.DoesNotExist:
         raise NotFound(detail={'message': 'parking space with id not found'}) 
+
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAdminOnly])
+@api_view(['GET'])
+def get_all_park_booking_past(request, park_id):
+    """this endpoint retrieves all bookings that are active for a single park"""
+    try:
+        obj = ParkingSpace.objects.get(id=park_id)
+        objs = obj.parking_space.filter(booking_status='past')
+        serializer = BookingSpaceSerializer(objs, many=True)
+        data = {
+            'message': 'success',
+            'count': objs.count(),
+            'data': serializer.data
+        }
+        return Response(data, status=status.HTTP_200_OK) 
+
+    except ParkingSpace.DoesNotExist:
+        raise NotFound(detail={'message': 'parking space with id not found'})
+
 
 # <-- Reviews endpoints -->
 class ReviewView(APIView):
@@ -380,7 +402,7 @@ def review(request):
         else:
             data = {
                 'message': 'failed',
-                'error': obj.data
+                'error': obj.errors
             }
             return Response(data, status=status.HTTP_400_BAD_REQUEST)
 
@@ -392,15 +414,11 @@ class ReviewEditView(APIView):
     def get_review(self, park_id, review_id, user):
         """this endpoint retrieves the review for the given park relating to the logged in user"""
         try:
-            park = ParkingSpace.objects.get(id=park_id)
-            park_obj = park.park_review.get(id=review_id, user=user)
-            if park_obj:
-                return park_obj
-            else:
-                raise PermissionDenied(detail={'message': 'cannot update review. review is not for this user'})
-
-        except ParkingSpace.DoesNotExist:
-            raise NotFound(detail={'message': 'parking space with id not found'}) 
+            park = Reviews.objects.get(id=review_id, park_space=park_id, user=user)
+            if park:
+                return park
+        except Reviews.DoesNotExist:
+            raise NotFound(detail={'message': 'cannot retrieve review. review is not for this user'}) 
      
     def get(self, request, park_id, review_id, format=None):
         """this endpoint retrieves review with the given id if the park_id and user are related to the given review"""
@@ -413,12 +431,12 @@ class ReviewEditView(APIView):
         }
         return Response(data, status=status.HTTP_200_OK)
 
-    @swagger_auto_schema(method='post', request_body=ReviewsSerializer3())
-    @action(methods=['POST'], detail=True)
-    def put(self, request, park_id, review_id, user):
+    @swagger_auto_schema(method='put', request_body=ReviewsSerializer3())
+    @action(methods=['PUT'], detail=True)
+    def put(self, request, park_id, review_id):
         """this endpoint updates review with the given id if the park_id and user are related to the given review"""
-        user = request.user.id
-        obj = self.get_review(park_id, review_id, user)
+        user_id = request.user.id
+        obj = self.get_review(park_id, review_id, user_id)
         serializer = ReviewsSerializer3(obj, data=request.data, partial=True)
 
         if serializer.is_valid():
@@ -438,7 +456,7 @@ class ReviewEditView(APIView):
 
     @swagger_auto_schema(method='post')
     @action(methods=['POST'], detail=True)
-    def delete(self, request, park_id, review_id, user):
+    def delete(self, request, park_id, review_id):
         user = request.user.id
         obj = self.get_review(park_id, review_id, user)
 
