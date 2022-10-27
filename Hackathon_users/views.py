@@ -306,6 +306,8 @@ def get_all_vehicle(request):
     return Response(data, status=status.HTTP_200_OK)
 
 class UserEdit(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsUserOnly]
 
     def get_user(self, user_id):
         try:
