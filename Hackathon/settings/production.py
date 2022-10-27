@@ -1,9 +1,9 @@
 from .base import *
 from Hackathon.settings import base
 
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = ['park-nd-go.herokuapp.com', '127.0.0.1']
+ALLOWED_HOSTS = ['park-nd-go.herokuapp.com']
 
 INSTALLED_APPS = base.INSTALLED_APPS + [
     'cloudinary',
