@@ -141,55 +141,57 @@ class RegisterView(APIView):
     @action(methods=['POST'], detail=True)
     def post(self, request):
         user_data = request.data
+        if len(user_data['password']) == 8: 
+            if eval(user_data['age']) >= 18:
+                serializer = self.serializer_class(data=user_data)
+                if serializer.is_valid():
+                    serializer.save()
+                    email_link(request=request, user_data=user_data)
+                    data={
+                        'message': 'success',
+                        'verify': 'verify email'
+                    }
 
-        if eval(user_data['age']) >= 18:
-            serializer = self.serializer_class(data=user_data)
-            if serializer.is_valid():
-                serializer.save()
-                email_link(request=request, user_data=user_data)
-                data={
-                    'message': 'success',
-                    'verify': 'verify email'
-                }
+                    return Response(data, status=status.HTTP_201_CREATED)
 
-                return Response(data, status=status.HTTP_201_CREATED)
-
+                
             
-        
-            else:
-                obj = CustomUser.objects.get(email=user_data['email'])
-            
-                if obj.is_otp_verified == False or obj.is_email_verified == False:
-                    obj.delete()
+                else:
+                    obj = CustomUser.objects.get(email=user_data['email'])
+                
+                    if obj.is_otp_verified == False or obj.is_email_verified == False:
+                        obj.delete()
 
-                    serializer1 = self.serializer_class(data=user_data)
-                    if serializer1.is_valid():  
-                        serializer1.save()
-                        email_link(request=request, user_data=user_data)
-                        data={
-                            'message': 'success',
-                            'next_page': 'verify email'
-                        }
+                        serializer1 = self.serializer_class(data=user_data)
+                        if serializer1.is_valid():  
+                            serializer1.save()
+                            email_link(request=request, user_data=user_data)
+                            data={
+                                'message': 'success',
+                                'next_page': 'verify email'
+                            }
 
-                        return Response(data, status=status.HTTP_201_CREATED)
+                            return Response(data, status=status.HTTP_201_CREATED)
+
+                        else:
+                            data = {
+                                'error': 'an error occured try again'
+                            }
+
+                            return Response(data, status=status.HTTP_400_BAD_REQUEST)
 
                     else:
                         data = {
-                            'error': 'an error occured try again'
+                            'message': 'failed to create. user already exists',
                         }
-
-                        return Response(data, status=status.HTTP_400_BAD_REQUEST)
-
-                else:
-                    data = {
-                        'message': 'failed to create. user already exists',
-                    }
+                    return Response(data, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                data = {
+                    'message': 'failed to create. People below 18 cannot be allowed to register',
+                }
                 return Response(data, status=status.HTTP_400_BAD_REQUEST)
         else:
-            data = {
-                'message': 'failed to create. People below 18 cannot be allowed to register',
-            }
-            return Response(data, status=status.HTTP_400_BAD_REQUEST)
+            raise PermissionDenied(detail={'message': 'password is required to be greater than 8'})
 
 class VerifyEmail(views.APIView):
     serializer_class = EmailVerificationSerializer
