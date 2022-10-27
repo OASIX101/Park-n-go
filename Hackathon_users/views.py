@@ -143,8 +143,6 @@ class RegisterView(APIView):
                     }
 
                     return Response(data, status=status.HTTP_201_CREATED)
-
-                
             
                 else:
                     obj = CustomUser.objects.get(email=user_data['email'])
