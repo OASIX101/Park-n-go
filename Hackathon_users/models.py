@@ -6,7 +6,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 class CustomUserManager(BaseUserManager):
 
-    def create_user(self, email, password, full_name, **other_fields):
+    def create_user(self, email, password, full_name, user_image, **other_fields):
         if not email:
             raise ValueError(_('You must provide an email address'))
         email = self.normalize_email(email)
@@ -19,7 +19,7 @@ class CustomUserManager(BaseUserManager):
         user.save()
         return user
 
-    def create_superuser(self, email, password, full_name, **other_fields):
+    def create_superuser(self, email, password, full_name, user_image, **other_fields):
 
         other_fields.setdefault('is_staff', True)
         other_fields.setdefault('is_superuser', True)
@@ -40,7 +40,7 @@ class CustomUserManager(BaseUserManager):
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
 
-    user_image = models.ImageField(upload_to='user_image/%Y/%B/%d/')
+    user_image = models.ImageField(upload_to='user_image/%Y/%B/%d/', null=True, blank=True)
     email = models.EmailField(unique=True)
     gmail_uid = models.CharField(max_length=250, unique=True)
     full_name = models.CharField(max_length=200)
