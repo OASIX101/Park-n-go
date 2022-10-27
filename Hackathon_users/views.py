@@ -7,7 +7,7 @@ from rest_framework import status
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.exceptions import PermissionDenied
 from Hackathon_users.models import CustomUser, Vehicle
-from .serializers import EmailVerificationSerializer, LogOutSerializer, LogInSerializer, RegisterSerializer, ResetPasswordEmailRequestSerializer, SetNewPasswordSerializer, UserEditSerializer, VehicleSerializer, VehicleSerializer2
+from .serializers import EmailVerificationSerializer, LogOutSerializer, LogInSerializer, RegisterSerializer, UserEditSerializer, VehicleSerializer, VehicleSerializer2
 from rest_framework_simplejwt.exceptions import TokenError
 from django.contrib.auth.signals import user_logged_in, user_logged_out
 from .permissions import *
@@ -23,9 +23,6 @@ import jwt
 from .renderers import *
 from rest_framework.exceptions import NotFound
 from django.conf import settings
-from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
-from django.utils.encoding import smart_str, force_str, smart_bytes, DjangoUnicodeDecodeError
-from django.contrib.auth.tokens import PasswordResetTokenGenerator
 import os
 from django.http import HttpResponsePermanentRedirect
 
@@ -358,11 +355,3 @@ class UserEdit(APIView):
         obj.delete()
 
         return Response(status=status.HTTP_204_NO_CONTENT)
-
-
-    serializer_class = SetNewPasswordSerializer
-
-    def patch(self, request):
-        serializer = self.serializer_class(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        return Response({'success': True, 'message': 'Password reset success'}, status=status.HTTP_200_OK)
