@@ -132,7 +132,7 @@ class RegisterView(APIView):
     def post(self, request):
         user_data = request.data
         if len(user_data['password']) >= 8: 
-            if user_data['age'] >= '18':
+            if eval(user_data['age']) >= 18:
                 serializer = self.serializer_class(data=user_data)
                 if serializer.is_valid():
                     serializer.save()
